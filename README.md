@@ -68,18 +68,24 @@ manuelle toujours disponible — jamais de scraping du site public.
 | 1 | Winner Finder | ✅ Complet | Scoring déterministe et explicable (`winner-finder/scoring`) |
 | 2 | Competitor Intelligence AI | ✅ Complet | 4 modes d'entrée, analyse IA complète, générateur de stratégie, comparateur |
 | 3 | AI Angle Marketing Finder | ✅ Complet | Réutilise le moteur du Module 2 |
-| 4 | Creative Analyzer | 🚧 Scaffoldé | Modèle de données prêt (`CreativeAnalysis`) |
+| 4 | Creative Analyzer | ✅ Complet | Vision Claude sur image ; description manuelle en fallback pour la vidéo |
 | 5 | Product Validator | ✅ Complet | Score 5 critères /20, décision LAUNCH/TEST/AVOID |
-| 6 | Market Opportunity Score | 🚧 Scaffoldé | Modèle de données prêt |
-| 7 | Saturation Detector | 🚧 Scaffoldé | Modèle de données prêt |
-| 8 | Script Generator | 🚧 Scaffoldé | Modèle de données prêt |
-| 9 | Copywriter E-commerce | 🚧 Scaffoldé | Modèle de données prêt |
-| 10 | Offer Builder | 🚧 Scaffoldé | Modèle de données prêt |
-| 11 | Audience Finder | 🚧 Scaffoldé | Modèle de données prêt |
-| 12 | Comment Analyzer | 🚧 Scaffoldé | Logique déjà présente par publicité dans le Module 2 |
-| 13 | WhatsApp Sales Assistant | 🚧 Scaffoldé | Modèle de données prêt |
-| 14 | Supplier Finder | 🚧 Scaffoldé | Modèle de données prêt |
-| 15 | Personal Ecommerce Brain | 🚧 Scaffoldé | Modèle de données prêt |
+| 6 | Market Opportunity Score | ✅ Complet | Score /100 sur 5 critères, par pays cible |
+| 7 | Saturation Detector | ✅ Complet | Signaux déterministes (`saturation-detector/signals`) + interprétation IA |
+| 8 | Script Generator | ✅ Complet | UGC / Storytelling / Démo, 5 tons, 4 plateformes |
+| 9 | Copywriter E-commerce | ✅ Complet | Facebook Ads, WhatsApp, Shopify, TikTok |
+| 10 | Offer Builder | ✅ Complet | Prix, bonus, garanties, urgence, packs, preuve sociale |
+| 11 | Audience Finder | ✅ Complet | Client idéal, démographie, intérêts et comportements Facebook |
+| 12 | Comment Analyzer | ✅ Complet | Version standalone + intégré par publicité dans le Module 2 |
+| 13 | WhatsApp Sales Assistant | ✅ Complet | Classification prospect, objections, réponses suggérées |
+| 14 | Supplier Finder | ✅ Complet | Saisie manuelle des fournisseurs + comparaison/recommandation IA |
+| 15 | Personal Ecommerce Brain | ✅ Complet | Agrège l'historique réel (`ecommerce-brain/stats`) + insights IA |
+
+Chaque module "Complet" suit le même patron : `schemas.ts` (contrat Zod de la réponse IA) →
+`prompts.ts` → `use-cases/` (orchestration + persistance Prisma) → route API → UI React.
+Aucun scraping de plateforme tierce (AliExpress, Alibaba...) n'est effectué : les données
+externes non accessibles via une API officielle sont toujours saisies manuellement par
+l'utilisateur, jamais scrapées.
 
 Les modules 🚧 ont leur schéma de base de données, leurs routes de navigation et une page
 d'attente premium déjà en place — l'implémentation IA suit le même patron que les modules

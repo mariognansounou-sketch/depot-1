@@ -502,7 +502,7 @@ model CreativeAnalysis {
   userId             String
   productId          String?
   sourceType         CreativeSourceType
-  mediaUrl           String
+  mediaUrl           String? // null when analyzed from a manual text description only (video fallback)
   hookAttentionScore Int // /10
   structure          Json
   visualAnalysis     Json

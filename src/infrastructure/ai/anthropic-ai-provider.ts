@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { AIPort } from "@/core/ports/ai.port";
+import type { AIPort, ImageInput } from "@/core/ports/ai.port";
 import { ExternalProviderError } from "@/core/errors";
 import { logger } from "@/infrastructure/logging/logger";
 
@@ -36,10 +36,24 @@ export class AnthropicAIProvider implements AIPort {
     prompt: string;
     schema: T;
     maxTokens?: number;
+    images?: ImageInput[];
   }): Promise<z.infer<T>> {
     const jsonSchema = zodToJsonSchema(args.schema, "schema").definitions?.schema ?? {};
 
     const attempt = async (extraNote?: string): Promise<z.infer<T>> => {
+      const text = extraNote ? `${args.prompt}\n\n${extraNote}` : args.prompt;
+      const content: Anthropic.MessageParam["content"] = args.images?.length
+        ? [
+            ...args.images.map(
+              (image): Anthropic.ImageBlockParam => ({
+                type: "image",
+                source: { type: "base64", media_type: image.mediaType, data: image.base64 },
+              }),
+            ),
+            { type: "text", text },
+          ]
+        : text;
+
       const message = await this.client.messages.create({
         model: DEFAULT_MODEL,
         max_tokens: args.maxTokens ?? 4096,
@@ -52,12 +66,7 @@ export class AnthropicAIProvider implements AIPort {
           },
         ],
         tool_choice: { type: "tool", name: TOOL_NAME },
-        messages: [
-          {
-            role: "user",
-            content: extraNote ? `${args.prompt}\n\n${extraNote}` : args.prompt,
-          },
-        ],
+        messages: [{ role: "user", content }],
       });
 
       const toolUse = message.content.find(
