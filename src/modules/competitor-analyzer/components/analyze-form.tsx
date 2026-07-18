@@ -23,7 +23,7 @@ export function AnalyzeForm({
 }: {
   productName: string;
   onProductNameChange: (value: string) => void;
-  onSubmit: (args: { mode: CompetitorInputMode; value: string; manualAd?: ManualAdInput }) => void;
+  onSubmit: (args: { mode: CompetitorInputMode; value?: string; manualAd?: ManualAdInput }) => void;
   isLoading: boolean;
 }) {
   const [mode, setMode] = useState<CompetitorInputMode>("PRODUCT_NAME");
@@ -47,7 +47,7 @@ export function AnalyzeForm({
 
     onSubmit({
       mode,
-      value,
+      value: showManual ? undefined : value,
       manualAd: showManual ? { ...manualAd, comments: comments.length ? comments : undefined } : undefined,
     });
   }
@@ -89,16 +89,18 @@ export function AnalyzeForm({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="value">{activeMode.label}</Label>
-            <Input
-              id="value"
-              required
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={activeMode.placeholder}
-            />
-          </div>
+          {!showManual && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="value">{activeMode.label}</Label>
+              <Input
+                id="value"
+                required
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={activeMode.placeholder}
+              />
+            </div>
+          )}
 
           <button
             type="button"

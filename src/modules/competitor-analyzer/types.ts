@@ -20,7 +20,8 @@ export interface ManualAdInput {
 
 export interface CompetitorAnalysisRequest {
   mode: CompetitorInputMode;
-  value: string;
+  /** Ignored when `manualAd` is set — required otherwise (enforced by the API validation schema). */
+  value?: string;
   productId?: string;
   manualAd?: ManualAdInput;
 }

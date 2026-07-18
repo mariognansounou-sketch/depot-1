@@ -43,7 +43,7 @@ export function CompetitorAnalyzerApp() {
     setSelectedAdIds((prev) => (prev.includes(adId) ? prev.filter((id) => id !== adId) : [...prev, adId]));
   }
 
-  async function handleAnalyze(args: { mode: CompetitorInputMode; value: string; manualAd?: ManualAdInput }) {
+  async function handleAnalyze(args: { mode: CompetitorInputMode; value?: string; manualAd?: ManualAdInput }) {
     setError(null);
     setIsAnalyzing(true);
     try {

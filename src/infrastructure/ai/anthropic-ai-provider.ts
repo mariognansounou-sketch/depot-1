@@ -26,7 +26,11 @@ export class AnthropicAIProvider implements AIPort {
 
   constructor(apiKey: string = process.env.ANTHROPIC_API_KEY ?? "") {
     if (!apiKey) {
-      throw new ExternalProviderError("anthropic", "ANTHROPIC_API_KEY is not configured");
+      logger.error("ANTHROPIC_API_KEY is not configured — AI features are unavailable");
+      throw new ExternalProviderError(
+        "IA",
+        "Le moteur d'intelligence artificielle n'est pas encore configuré sur cet environnement. Contactez l'administrateur pour activer ANTHROPIC_API_KEY.",
+      );
     }
     this.client = new Anthropic({ apiKey });
   }

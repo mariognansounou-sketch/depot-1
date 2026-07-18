@@ -18,12 +18,20 @@ const manualAdSchema = z.object({
   comments: z.array(z.string().max(500)).max(50).optional(),
 });
 
-export const competitorAnalysisRequestSchema = z.object({
-  mode: z.enum(["AD_URL", "PRODUCT_NAME", "STORE_URL", "BRAND_NAME"]),
-  value: z.string().min(2).max(300),
-  productId: z.string().cuid().optional(),
-  manualAd: manualAdSchema.optional(),
-});
+export const competitorAnalysisRequestSchema = z
+  .object({
+    mode: z.enum(["AD_URL", "PRODUCT_NAME", "STORE_URL", "BRAND_NAME"]),
+    // Ignored by the use-case whenever `manualAd` is provided (manual data
+    // always takes priority — see AnalyzeCompetitorUseCase.resolveAds), so
+    // it's only required when the user isn't pasting the ad manually.
+    value: z.string().max(300).optional(),
+    productId: z.string().cuid().optional(),
+    manualAd: manualAdSchema.optional(),
+  })
+  .refine((data) => Boolean(data.manualAd) || (data.value?.trim().length ?? 0) >= 2, {
+    message: "Renseignez une valeur de recherche ou les données manuelles de la publicité.",
+    path: ["value"],
+  });
 
 export const generateStrategySchema = z.object({
   productId: z.string().cuid(),

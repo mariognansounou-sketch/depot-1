@@ -39,7 +39,7 @@ export class AnalyzeCompetitorUseCase {
     }
 
     const competitorLabel =
-      request.manualAd?.pageName || rawAds[0]?.pageName || request.value.slice(0, 60);
+      request.manualAd?.pageName || rawAds[0]?.pageName || request.value?.slice(0, 60) || "Concurrent";
 
     const competitor =
       (await prisma.competitor.findFirst({ where: { userId, name: competitorLabel } })) ??
@@ -140,13 +140,18 @@ export class AnalyzeCompetitorUseCase {
       return [manualSource.normalize(request.manualAd)];
     }
 
+    const value = request.value?.trim();
+    if (!value) {
+      throw new ValidationError("Renseignez une valeur de recherche ou les données manuelles de la publicité.");
+    }
+
     if (request.mode === "AD_URL") {
-      const ad = await this.adSource.getAdByUrlOrId(request.value);
+      const ad = await this.adSource.getAdByUrlOrId(value);
       return ad ? [ad] : [];
     }
 
     // PRODUCT_NAME, BRAND_NAME, STORE_URL all resolve through a free-text
     // search against the ad source (Meta Ad Library API when configured).
-    return this.adSource.searchAds({ query: request.value, limit: 5 });
+    return this.adSource.searchAds({ query: value, limit: 5 });
   }
 }
