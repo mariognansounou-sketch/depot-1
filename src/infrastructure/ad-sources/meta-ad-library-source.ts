@@ -62,9 +62,7 @@ export class MetaAdLibraryApiSource implements AdSourcePort {
       ].join(","),
     });
 
-    const response = await fetch(`${GRAPH_BASE}/ads_archive?${params.toString()}`, {
-      method: "GET",
-    });
+    const response = await fetchGraphApi(`${GRAPH_BASE}/ads_archive?${params.toString()}`);
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
@@ -97,7 +95,7 @@ export class MetaAdLibraryApiSource implements AdSourcePort {
 
     // The ads_archive endpoint does not support direct lookup-by-id search
     // terms; the documented approach is to fetch the node directly by id.
-    const response = await fetch(
+    const response = await fetchGraphApi(
       `${GRAPH_BASE}/${archiveId}?access_token=${encodeURIComponent(this.accessToken)}&fields=id,ad_creative_bodies,page_name,ad_delivery_start_time,ad_delivery_stop_time,languages,ad_snapshot_url`,
     );
 
@@ -106,6 +104,24 @@ export class MetaAdLibraryApiSource implements AdSourcePort {
     }
     const json = (await response.json()) as Record<string, unknown>;
     return mapGraphAdToRawRecord(json);
+  }
+}
+
+/**
+ * Wraps `fetch` so network-level failures (DNS errors, connection resets,
+ * blocked egress) become a clean ExternalProviderError instead of an
+ * unhandled rejection — the same failure class a real Meta outage would
+ * produce, so this also protects production, not just this dev sandbox.
+ */
+async function fetchGraphApi(url: string): Promise<Response> {
+  try {
+    return await fetch(url, { method: "GET" });
+  } catch (error) {
+    logger.error("Meta Ad Library API network request failed", { error: String(error) });
+    throw new ExternalProviderError(
+      "meta_ad_library_api",
+      "Impossible de contacter l'API Meta Ad Library (problème réseau ou service indisponible). Réessayez plus tard ou utilisez la saisie manuelle.",
+    );
   }
 }
 
