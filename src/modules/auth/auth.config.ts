@@ -9,6 +9,12 @@ import type { NextAuthConfig } from "next-auth";
  * it never calls `authorize()` itself.
  */
 export const authConfig = {
+  // Auth.js v5 refuses requests whose Host header it doesn't recognize
+  // unless explicitly told to trust it. Vercel sets this automatically;
+  // every other deployment target (Docker, Railway, Fly.io, a plain VPS
+  // behind Nginx...) needs it set explicitly or every sign-in fails with
+  // an "UntrustedHost" error the moment the app goes live behind a proxy.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },

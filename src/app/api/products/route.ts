@@ -30,16 +30,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Produit invalide", issues: parsed.error.flatten() }, { status: 422 });
   }
 
-  const existing = await prisma.product.findFirst({
-    where: { userId: session.user.id, name: parsed.data.name },
-  });
-  if (existing) {
-    return NextResponse.json({ product: existing });
-  }
-
-  const product = await prisma.product.create({
-    data: { userId: session.user.id, ...parsed.data },
+  const product = await prisma.product.upsert({
+    where: { userId_name: { userId: session.user.id, name: parsed.data.name } },
+    create: { userId: session.user.id, ...parsed.data },
+    update: {},
   });
 
-  return NextResponse.json({ product }, { status: 201 });
+  return NextResponse.json({ product });
 }

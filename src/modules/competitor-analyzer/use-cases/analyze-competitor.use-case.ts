@@ -41,9 +41,11 @@ export class AnalyzeCompetitorUseCase {
     const competitorLabel =
       request.manualAd?.pageName || rawAds[0]?.pageName || request.value?.slice(0, 60) || "Concurrent";
 
-    const competitor =
-      (await prisma.competitor.findFirst({ where: { userId, name: competitorLabel } })) ??
-      (await prisma.competitor.create({ data: { userId, name: competitorLabel } }));
+    const competitor = await prisma.competitor.upsert({
+      where: { userId_name: { userId, name: competitorLabel } },
+      create: { userId, name: competitorLabel },
+      update: {},
+    });
 
     const results: AnalyzedAd[] = [];
 

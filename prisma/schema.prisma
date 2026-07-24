@@ -241,6 +241,7 @@ model Product {
   creativeAnalyses   CreativeAnalysis[]
   suppliers          Supplier[]
 
+  @@unique([userId, name])
   @@index([userId, status])
   @@map("products")
 }
@@ -261,7 +262,7 @@ model Competitor {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   ads  Ad[]
 
-  @@index([userId])
+  @@unique([userId, name])
   @@map("competitors")
 }
 

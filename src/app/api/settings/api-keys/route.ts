@@ -3,6 +3,7 @@ import { auth } from "@/modules/auth/auth";
 import { prisma } from "@/infrastructure/db/prisma";
 import { encryptSecret } from "@/infrastructure/security/crypto";
 import { createApiKeySchema } from "@/lib/validation/settings.schema";
+import { logger } from "@/infrastructure/logging/logger";
 
 export async function GET() {
   const session = await auth();
@@ -31,7 +32,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Clé API invalide" }, { status: 422 });
   }
 
-  const encryptedValue = encryptSecret(parsed.data.value);
+  let encryptedValue: string;
+  try {
+    encryptedValue = encryptSecret(parsed.data.value);
+  } catch (error) {
+    logger.error("Failed to encrypt API key — check ENCRYPTION_KEY", { error: String(error) });
+    return NextResponse.json(
+      { error: "Le chiffrement des clés API n'est pas correctement configuré sur ce serveur." },
+      { status: 500 },
+    );
+  }
 
   const key = await prisma.apiKey.create({
     data: {
