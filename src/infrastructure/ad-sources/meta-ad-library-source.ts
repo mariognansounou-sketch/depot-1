@@ -67,10 +67,7 @@ export class MetaAdLibraryApiSource implements AdSourcePort {
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       logger.error("Meta Ad Library API request failed", { status: response.status, body });
-      throw new ExternalProviderError(
-        "meta_ad_library_api",
-        `Request failed with status ${response.status}`,
-      );
+      throw new ExternalProviderError("meta_ad_library_api", translateMetaApiError(response.status, body));
     }
 
     const json = (await response.json()) as {
@@ -123,6 +120,49 @@ async function fetchGraphApi(url: string): Promise<Response> {
       "Impossible de contacter l'API Meta Ad Library (problème réseau ou service indisponible). Réessayez plus tard ou utilisez la saisie manuelle.",
     );
   }
+}
+
+/**
+ * Translates a Meta Graph API error body into a clean, actionable French
+ * message instead of the raw status/JSON — mirrors how AnthropicAIProvider
+ * handles its own SDK errors. Meta's error payloads are wrapped as
+ * `{ error: { message, type, code, error_subcode, error_user_title,
+ * error_user_msg } }`; we parse what we can and fall back gracefully when
+ * the body isn't the shape we expect.
+ */
+function translateMetaApiError(status: number, rawBody: string): string {
+  let parsed: { error?: { code?: number; error_subcode?: number; message?: string } } | null = null;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch {
+    // not JSON — fall through to the generic message below
+  }
+
+  const subcode = parsed?.error?.error_subcode;
+  const code = parsed?.error?.code;
+
+  // code 10 / subcode 2332004 — "App role required": the Facebook account
+  // behind this token isn't assigned a role (Admin/Developer/Tester) on
+  // the Meta App in developers.facebook.com, which Development-mode apps
+  // require for every API call. The fix lives entirely in the Meta App
+  // Dashboard, not in this app's configuration.
+  if (code === 10 && subcode === 2332004) {
+    return "L'app Meta associée à ce token n'autorise pas ce compte à utiliser l'API : il doit avoir un rôle (Administrateur/Développeur/Testeur) assigné sur l'app, dans developers.facebook.com → votre app → Rôles de l'application.";
+  }
+
+  if (status === 401 || code === 190) {
+    return "Le token Meta Ad Library configuré est invalide ou a expiré. Générez-en un nouveau sur developers.facebook.com.";
+  }
+
+  if (status === 429 || code === 4 || code === 17) {
+    return "Trop de requêtes envoyées à l'API Meta Ad Library en peu de temps (limite de débit atteinte). Réessayez dans quelques instants.";
+  }
+
+  if (parsed?.error?.message) {
+    return `Meta Ad Library API : ${parsed.error.message}`;
+  }
+
+  return `La requête à l'API Meta Ad Library a échoué (code ${status}). Essayez la saisie manuelle en attendant.`;
 }
 
 function extractArchiveId(input: string): string | null {
