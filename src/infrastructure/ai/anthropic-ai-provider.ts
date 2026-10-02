@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { AIPort, ImageInput } from "@/core/ports/ai.port";
@@ -85,6 +85,19 @@ export class AnthropicAIProvider implements AIPort {
     try {
       return await attempt();
     } catch (firstError) {
+      if (firstError instanceof APIError) {
+        // A real API-level failure (billing, auth, rate limit, outage...) is
+        // not something retrying with "fix your schema" feedback can solve —
+        // retrying would just burn a second call for the same failure, and
+        // the raw SDK error (status code, nested JSON) is not fit to show a
+        // user. Fail fast with one clean, translated message instead.
+        logger.error("Anthropic API call failed", {
+          status: firstError.status,
+          error: String(firstError),
+        });
+        throw new ExternalProviderError("IA", translateAnthropicApiError(firstError));
+      }
+
       logger.warn("AI structured output failed validation, retrying once", {
         error: String(firstError),
       });
@@ -95,10 +108,17 @@ export class AnthropicAIProvider implements AIPort {
           )}`,
         );
       } catch (secondError) {
+        if (secondError instanceof APIError) {
+          logger.error("Anthropic API call failed on retry", {
+            status: secondError.status,
+            error: String(secondError),
+          });
+          throw new ExternalProviderError("IA", translateAnthropicApiError(secondError));
+        }
         logger.error("AI structured output failed twice", { error: String(secondError) });
         throw new ExternalProviderError(
-          "anthropic",
-          `Failed to produce a valid structured response: ${String(secondError)}`,
+          "IA",
+          "La réponse de l'IA n'a pas pu être validée après deux tentatives. Réessayez, et si le problème persiste, contactez le support.",
         );
       }
     }
@@ -119,6 +139,28 @@ export class AnthropicAIProvider implements AIPort {
 }
 
 let cachedProvider: AnthropicAIProvider | null = null;
+
+/**
+ * Maps an Anthropic SDK error to a clean, French, actionable message —
+ * never the raw status code or nested JSON body. Falls back to a generic
+ * message for anything not explicitly handled below (e.g. a genuinely
+ * malformed request), so we never leak SDK internals either way.
+ */
+function translateAnthropicApiError(error: APIError): string {
+  if (error.status === 400 && /credit balance/i.test(error.message)) {
+    return "Le compte Anthropic associé à cette clé API n'a plus de crédit disponible. Rechargez-le sur console.anthropic.com (Plans & Billing) pour réactiver les fonctionnalités IA.";
+  }
+  if (error.status === 401) {
+    return "La clé API Anthropic configurée est invalide ou a été révoquée. Vérifiez ANTHROPIC_API_KEY.";
+  }
+  if (error.status === 429) {
+    return "Trop de requêtes envoyées à l'IA en peu de temps (limite de débit Anthropic atteinte). Réessayez dans quelques instants.";
+  }
+  if (error.status && error.status >= 500) {
+    return "Le service Anthropic est temporairement indisponible. Réessayez dans quelques instants.";
+  }
+  return "Le moteur d'intelligence artificielle n'a pas pu traiter cette demande. Réessayez, et si le problème persiste, contactez le support.";
+}
 
 /** Lazily instantiated singleton so build/test steps without an API key don't crash at import time. */
 export function getAIProvider(): AIPort {
