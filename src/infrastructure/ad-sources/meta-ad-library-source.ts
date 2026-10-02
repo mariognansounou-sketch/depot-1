@@ -150,6 +150,16 @@ function translateMetaApiError(status: number, rawBody: string): string {
     return "L'app Meta associée à ce token n'autorise pas ce compte à utiliser l'API : il doit avoir un rôle (Administrateur/Développeur/Testeur) assigné sur l'app, dans developers.facebook.com → votre app → Rôles de l'application.";
   }
 
+  // code 10 / subcode 2332002 — "Autorisation et informations de connexion
+  // requises": distinct from the role check above. Confirmed live even
+  // with an Admin's own user token — Meta gates the entire /ads_archive
+  // endpoint (not just political ad spend/impressions data) behind its
+  // own Ad Library API identity-verification process, separate from app
+  // roles. There is no config fix on our side; see docs/META_AD_LIBRARY.md.
+  if (code === 10 && subcode === 2332002) {
+    return "Ce compte Meta n'a pas encore complété la vérification d'identité requise pour l'API Ad Library. Suivez le processus sur facebook.com/ads/library/api — en attendant, utilisez la saisie manuelle.";
+  }
+
   if (status === 401 || code === 190) {
     return "Le token Meta Ad Library configuré est invalide ou a expiré. Générez-en un nouveau sur developers.facebook.com.";
   }

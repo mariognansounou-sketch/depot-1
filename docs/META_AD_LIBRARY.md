@@ -13,8 +13,21 @@ C'est l'API publique que Meta publie spécifiquement pour cet usage :
 https://www.facebook.com/ads/library/api
 
 **Prérequis** :
-- Un compte développeur Meta avec accès à l'Ad Library API approuvé.
-- Un `access_token` valide, renseigné dans `META_AD_LIBRARY_ACCESS_TOKEN`.
+- Un compte développeur Meta, avec une app ayant un rôle (Administrateur/Développeur/Testeur)
+  assigné à l'utilisateur dont le token est utilisé.
+- ⚠️ **Vérification d'identité Meta obligatoire** — confirmé en conditions réelles (pas
+  seulement documenté sur le papier) : même une simple recherche `ad_type=ALL` sur des
+  publicités e-commerce classiques échoue avec une `OAuthException` (code 10) tant que le
+  compte n'a pas suivi le processus de vérification décrit sur
+  https://www.facebook.com/ads/library/api. Un rôle Admin sur l'app ne suffit pas à lui
+  seul (erreur observée : `error_subcode 2332004` "App role required" avec un token
+  d'application ; `error_subcode 2332002` "Autorisation et informations de connexion
+  requises" même avec un token utilisateur Admin, tant que la vérification n'est pas
+  faite). Ce point corrige une hypothèse initiale trop optimiste : on pensait que seule la
+  donnée `spend`/`impressions` des pubs politiques nécessitait cette vérification — en
+  pratique Meta verrouille l'accès à l'endpoint entier derrière elle.
+- Un `access_token` valide (utilisateur ou application), renseigné dans
+  `META_AD_LIBRARY_ACCESS_TOKEN`.
 
 **Limites connues (documentées, jamais masquées à l'utilisateur)** :
 - Les champs `spend` (dépense) et `impressions` ne sont publiés par Meta **que pour les
