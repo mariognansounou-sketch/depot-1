@@ -94,6 +94,7 @@ export class AnthropicAIProvider implements AIPort {
         logger.error("Anthropic API call failed", {
           status: firstError.status,
           error: String(firstError),
+          cause: firstError.cause ? String(firstError.cause) : undefined,
         });
         throw new ExternalProviderError("IA", translateAnthropicApiError(firstError));
       }
@@ -147,6 +148,13 @@ let cachedProvider: AnthropicAIProvider | null = null;
  * malformed request), so we never leak SDK internals either way.
  */
 function translateAnthropicApiError(error: APIError): string {
+  if (error instanceof Anthropic.APIConnectionError || error.status === undefined) {
+    // No HTTP status at all means the request never reached Anthropic's
+    // servers — a local network problem (firewall rule scoped to node.exe,
+    // antivirus HTTPS/SSL interception with an untrusted certificate, a
+    // corporate proxy Node isn't configured for), not an Anthropic outage.
+    return "Impossible de joindre les serveurs d'Anthropic depuis cette machine (erreur réseau). Vérifiez le pare-feu Windows pour Node.js, et si un antivirus fait de l'inspection HTTPS (Avast, Kaspersky, Bitdefender...), désactivez temporairement cette fonction pour tester.";
+  }
   if (error.status === 400 && /credit balance/i.test(error.message)) {
     return "Le compte Anthropic associé à cette clé API n'a plus de crédit disponible. Rechargez-le sur console.anthropic.com (Plans & Billing) pour réactiver les fonctionnalités IA.";
   }
